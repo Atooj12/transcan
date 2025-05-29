@@ -1,0 +1,32 @@
+# Ambientes virtuais
+.venv/
+env/
+
+# Compilados Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Dados de execução e resultados
+data/crops/
+data/ocr/
+data/translated/
+data/output/
+data/final/
+data/input/
+
+# Cache, logs, arquivos temporários
+*.log
+*.tmp
+.DS_Store
+
+# Arquivos do sistema
+Thumbs.db
+
+# IDEs e configurações locais
+.vscode/
+.idea/
+*.code-workspace
+
+# Arquivos de execução individual (opcional)
+.ipynb_checkpoints/
