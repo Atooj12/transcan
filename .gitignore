@@ -1,32 +1,39 @@
-# Ambientes virtuais
+# === AMBIENTE VIRTUAL ===
 .venv/
 env/
 
-# Compilados Python
+# === COMPILADOS PYTHON ===
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Dados de execução e resultados
+# === DADOS GERADOS PELO SISTEMA ===
 data/crops/
 data/ocr/
-data/translated/
+data/traducao/
 data/output/
-data/final/
 data/input/
+*.json
+*.txt
+*.zip
+*.pdf
+*.png
+*.jpg
+*.jpeg
 
-# Cache, logs, arquivos temporários
+# === CACHE, LOGS E TEMPORÁRIOS ===
 *.log
 *.tmp
 .DS_Store
-
-# Arquivos do sistema
 Thumbs.db
 
-# IDEs e configurações locais
+# === CONFIGS DE IDE ===
 .vscode/
 .idea/
 *.code-workspace
 
-# Arquivos de execução individual (opcional)
+# === NOTEBOOKS (se houver)
 .ipynb_checkpoints/
+
+# === BACKUP TEMP (caso tenha)
+*.bak

@@ -1,24 +1,85 @@
-# TranScan (Beta)
+# 🚀 Transcan (MVP)
 
-Sistema automatizado de tradução de mangás (OCR + Tradução + Inserção de Texto).
+Sistema **automatizado** de tradução de mangás — do **crop** ao **texto reinserido**.
 
-⚠️ Este repositório é privado e parte de um projeto de monetização real.
+> ⚠️ Repositório **privado**. Projeto em fase beta com objetivo de monetização real.
 
-## Módulos:
-- OCR (Extração de texto com PyTesseract / EasyOCR)
-- Tradução (API ou modelo local)
-- Inserção de texto (com PIL / OpenCV)
-- Pré-processamento de imagem
+---
 
-## Como rodar:
-1. Crie um `.venv`
-2. Instale as dependências: `pip install -r requirements.txt`
-3. Execute o script principal: `python app/main.py`
+## 🔧 Módulos do Sistema
 
-## Estrutura de Pastas:
-- `app/` – código principal
-- `data/` – imagens e resultados (não incluídos no Git)
-- `scripts/` – automações e testes
+- 🖼️ **Crop Manual** com interface interativa (OpenCV)
+- 🧠 **OCR com EasyOCR** (texto extraído por crop)
+- 📝 **Tradução Manual/Automática** (estrutura pronta)
+- 🎨 **Type (Reinserção)** com fonte, centralização e marca d’água
+- 🧩 **Pipeline Completa** via `main.py`
 
-## Autor:
-João Pedro @ TransCAM
+---
+
+## ⚙️ Tecnologias
+
+- Python 3.12+
+- EasyOCR
+- Pillow
+- OpenCV
+- TTF Font (Inter)
+
+---
+
+## 📁 Estrutura do Projeto
+
+transcan-mvp/
+├── app/ # Código principal
+│ ├── assets/ # Fontes (.ttf)
+│ ├── crop_interface.py
+│ ├── ocr.py
+│ ├── reinsercao.py
+│ ├── utils.py
+│ └── main.py # Executável CLI principal
+├── data/ # Ignorado no Git (.gitignore)
+│ ├── input/ # Imagens originais
+│ ├── crops/ # Crops gerados
+│ ├── ocr/ # OCR + JSON de tradução
+│ ├── traducao/ # (não utilizado no MVP atual)
+│ └── output/ # Páginas finais com texto reinserido
+├── .gitignore
+├── requirements.txt
+└── README.md
+
+yaml
+Copiar
+Editar
+
+---
+
+## ▶️ Como Rodar
+
+```bash
+# 1. Ambiente virtual (recomendado)
+python -m venv .venv
+source .venv/bin/activate  # Linux/macOS
+.venv\Scripts\activate     # Windows
+
+# 2. Instalar dependências
+pip install -r requirements.txt
+
+# 3. Rodar o sistema
+python -m app.main
+🧠 Fluxo
+Você seleciona o capítulo (scan, obra e número)
+
+Corta os balões com o mouse (Crop)
+
+O sistema faz OCR dos crops
+
+Você traduz os .txt (manualmente ou com IA)
+
+Reinserção automática do texto nas imagens originais
+
+👨‍💻 Autor
+João Pedro
+Projeto Transcan (Beta Privado)
+GitHub / LinkedIn: em construção
+
+❌ Licença
+Distribuição e uso proibidos sem autorização explícita do autor.
