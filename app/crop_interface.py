@@ -6,9 +6,8 @@ import re
 from app.utils import build_path, BASE_DIR
 
 def executar_crop(scan, obra, numero):
-    print("🔪 Iniciando Crop Interface...")
+    print("⚔️ Iniciando Crop Interface...")
 
-    # === Diretórios organizados (corrigido para pasta 'data/') ===
     input_folder = build_path('input', scan, obra, numero)
     output_folder = build_path('crops', scan, obra, numero)
     json_folder = os.path.join(output_folder, 'posicoes.json')
@@ -19,7 +18,7 @@ def executar_crop(scan, obra, numero):
     def dividir_se_preciso(caminho_imagem):
         imagem = Image.open(caminho_imagem)
         largura, altura = imagem.size
-        if altura > 1800:  # Limite definido para dividir (ajustável)
+        if altura > 1800:
             metade = altura // 2
             nome = os.path.splitext(os.path.basename(caminho_imagem))[0]
             pasta = os.path.dirname(caminho_imagem)
@@ -34,11 +33,10 @@ def executar_crop(scan, obra, numero):
             parte2.save(caminho2)
 
             os.remove(caminho_imagem)
-            print(f"🔪 Imagem dividida automaticamente: {nome}")
+            print(f"⚔️ Imagem dividida automaticamente: {nome}")
             return [os.path.basename(caminho1), os.path.basename(caminho2)]
         return [os.path.basename(caminho_imagem)]
 
-    # --- Lista e divide automaticamente ---
     imagens_raw = [f for f in os.listdir(input_folder) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
     if not imagens_raw:
         print("❌ Nenhuma imagem encontrada na pasta.")
@@ -112,17 +110,9 @@ def executar_crop(scan, obra, numero):
                     print("⚠️ Crop muito pequeno.")
                     return
 
-                # Cor base
                 cor_pixel = imagem_original[y, x].tolist()
-                tolerancia = 30
-                min_cor = [max(c - tolerancia, 0) for c in cor_pixel]
-                max_cor = [min(c + tolerancia, 255) for c in cor_pixel]
+                cv2.rectangle(imagem_processada, (x, y), (x + w, y + h), cor_pixel, -1)
 
-                # Limpeza por cor
-                mascara = cv2.inRange(imagem_original, tuple(min_cor), tuple(max_cor))
-                imagem_processada[mascara > 0] = (255, 255, 255)
-
-                # Salvar crop
                 roi = imagem_original[y:y + h, x:x + w]
                 nome_crop = f"{arquivo_imagem.split('.')[0]}_crop_{len(posicoes) + len(crops_atuais) + 1}.png"
                 caminho_crop = os.path.join(output_folder, nome_crop)
@@ -140,10 +130,9 @@ def executar_crop(scan, obra, numero):
                     "h": h
                 })
 
-                print(f"✅ Crop salvo com limpeza: {nome_crop}")
+                print(f"✅ Crop salvo com fundo limpo: {nome_crop}")
                 imagem_interface = cv2.resize(imagem_processada, (window_width, window_height))
                 clone = imagem_interface.copy()
-
 
         clone = imagem_interface.copy()
         cv2.namedWindow("Cropper")
@@ -167,7 +156,7 @@ def executar_crop(scan, obra, numero):
                     print(f"❌ Removido: {ultimo['crop']}")
                     imagem_processada = imagem_original.copy()
                     for c in crops_atuais:
-                        cv2.rectangle(imagem_processada, (c['x'], c['y']), (c['x'] + c['w'], c['y'] + c['h']), (255, 255, 255), -1)
+                        cv2.rectangle(imagem_processada, (c['x'], c['y']), (c['x'] + c['w'], c['y'] + c['h']), imagem_original[c['y'], c['x']].tolist(), -1)
                     imagem_interface = cv2.resize(imagem_processada, (window_width, window_height))
                     clone = imagem_interface.copy()
             elif key == ord("c"):
@@ -180,7 +169,6 @@ def executar_crop(scan, obra, numero):
 
         cv2.destroyAllWindows()
 
-    # === SALVAR JSON ===
     if os.path.exists(json_folder):
         with open(json_folder, 'r') as f:
             dados_existentes = json.load(f)
