@@ -1,3 +1,4 @@
+from PIL import Image
 import cv2
 import os
 import json
@@ -15,10 +16,38 @@ def executar_crop(scan, obra, numero):
     os.makedirs(input_folder, exist_ok=True)
     os.makedirs(output_folder, exist_ok=True)
 
-    imagens_disponiveis = [f for f in os.listdir(input_folder) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
-    if not imagens_disponiveis:
+    def dividir_se_preciso(caminho_imagem):
+        imagem = Image.open(caminho_imagem)
+        largura, altura = imagem.size
+        if altura > 1800:  # Limite definido para dividir (ajustável)
+            metade = altura // 2
+            nome = os.path.splitext(os.path.basename(caminho_imagem))[0]
+            pasta = os.path.dirname(caminho_imagem)
+
+            parte1 = imagem.crop((0, 0, largura, metade))
+            parte2 = imagem.crop((0, metade, largura, altura))
+
+            caminho1 = os.path.join(pasta, f"{nome}_parte1.png")
+            caminho2 = os.path.join(pasta, f"{nome}_parte2.png")
+
+            parte1.save(caminho1)
+            parte2.save(caminho2)
+
+            os.remove(caminho_imagem)
+            print(f"🔪 Imagem dividida automaticamente: {nome}")
+            return [os.path.basename(caminho1), os.path.basename(caminho2)]
+        return [os.path.basename(caminho_imagem)]
+
+    # --- Lista e divide automaticamente ---
+    imagens_raw = [f for f in os.listdir(input_folder) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
+    if not imagens_raw:
         print("❌ Nenhuma imagem encontrada na pasta.")
         return
+
+    imagens_disponiveis = []
+    for img in imagens_raw:
+        caminho = os.path.join(input_folder, img)
+        imagens_disponiveis.extend(dividir_se_preciso(caminho))
 
     def ordenar_paginas(lista):
         def extrair_numero(nome):
@@ -67,16 +96,37 @@ def executar_crop(scan, obra, numero):
             if event == cv2.EVENT_LBUTTONDOWN:
                 x_start, y_start = x, y
                 cropping = True
+
             elif event == cv2.EVENT_MOUSEMOVE and cropping:
                 x_end, y_end = x, y
+
             elif event == cv2.EVENT_LBUTTONUP:
                 cropping = False
-                x, y, w, h = int(min(x_start, x_end)/scale), int(min(y_start, y_end)/scale), int(abs(x_start - x_end)/scale), int(abs(y_start - y_end)/scale)
+
+                x = int(min(x_start, x_end) / scale)
+                y = int(min(y_start, y_end) / scale)
+                w = int(abs(x_start - x_end) / scale)
+                h = int(abs(y_start - y_end) / scale)
+
+                if w < 5 or h < 5:
+                    print("⚠️ Crop muito pequeno.")
+                    return
+
+                # Cor base
+                cor_pixel = imagem_original[y, x].tolist()
+                tolerancia = 30
+                min_cor = [max(c - tolerancia, 0) for c in cor_pixel]
+                max_cor = [min(c + tolerancia, 255) for c in cor_pixel]
+
+                # Limpeza por cor
+                mascara = cv2.inRange(imagem_original, tuple(min_cor), tuple(max_cor))
+                imagem_processada[mascara > 0] = (255, 255, 255)
+
+                # Salvar crop
                 roi = imagem_original[y:y + h, x:x + w]
                 nome_crop = f"{arquivo_imagem.split('.')[0]}_crop_{len(posicoes) + len(crops_atuais) + 1}.png"
                 caminho_crop = os.path.join(output_folder, nome_crop)
                 cv2.imwrite(caminho_crop, roi)
-                cv2.rectangle(imagem_processada, (x, y), (x + w, y + h), (255, 255, 255), -1)
 
                 crops_atuais.append({
                     "scan": scan,
@@ -90,9 +140,10 @@ def executar_crop(scan, obra, numero):
                     "h": h
                 })
 
-                print(f"✅ Crop salvo: {nome_crop}")
+                print(f"✅ Crop salvo com limpeza: {nome_crop}")
                 imagem_interface = cv2.resize(imagem_processada, (window_width, window_height))
                 clone = imagem_interface.copy()
+
 
         clone = imagem_interface.copy()
         cv2.namedWindow("Cropper")
