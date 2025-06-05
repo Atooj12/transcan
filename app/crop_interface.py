@@ -1,11 +1,13 @@
+from PIL import Image
 import cv2
 import os
 import json
 import re
 from app.utils import build_path, BASE_DIR
+from app.divisor import dividir_imagem
 
-def executar_crop(scan, obra, numero):
-    print("⚔️ Iniciando Crop Interface...")
+def executar_crop(scan, obra, numero, dividir=False):
+    print("🔪 Iniciando Crop Interface...")
 
     input_folder = build_path('input', scan, obra, numero)
     output_folder = build_path('crops', scan, obra, numero)
@@ -14,10 +16,19 @@ def executar_crop(scan, obra, numero):
     os.makedirs(input_folder, exist_ok=True)
     os.makedirs(output_folder, exist_ok=True)
 
-    imagens_disponiveis = [f for f in os.listdir(input_folder) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
-    if not imagens_disponiveis:
+    imagens_raw = [f for f in os.listdir(input_folder) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
+    if not imagens_raw:
         print("❌ Nenhuma imagem encontrada na pasta.")
         return
+
+    imagens_divididas = []
+    for img in imagens_raw:
+        if dividir:
+            partes = dividir_imagem(scan, obra, numero, img)
+            if partes:
+                imagens_divididas.extend([os.path.basename(p) for p in partes])
+        else:
+            imagens_divididas.append(img)
 
     def ordenar_paginas(lista):
         def extrair_numero(nome):
@@ -25,30 +36,18 @@ def executar_crop(scan, obra, numero):
             return int(numeros[0]) if numeros else 0
         return sorted(lista, key=extrair_numero)
 
-    imagens_disponiveis = ordenar_paginas(imagens_disponiveis)
+    imagens_disponiveis = ordenar_paginas(imagens_divididas)
     posicoes = []
+    screen_res = (1600, 900)
+    indice_atual = 0
 
-    while True:
-        print("\n📂 Imagens disponíveis:")
-        for idx, img in enumerate(imagens_disponiveis):
-            print(f"[{idx}] {img}")
+    while indice_atual < len(imagens_disponiveis):
+        arquivo_imagem = imagens_disponiveis[indice_atual]
+        caminho_img = os.path.join(input_folder, arquivo_imagem)
 
-        escolha = input("\n🔍 Digite o número da imagem que você quer abrir (ou 'q' pra sair): ")
-        if escolha.lower() == 'q':
-            print("🚪 Saindo do Crop Interface.")
-            break
-
-        try:
-            indice = int(escolha)
-            arquivo_imagem = imagens_disponiveis[indice]
-        except:
-            print("❌ Entrada inválida.")
-            continue
-
-        imagem_original = cv2.imread(os.path.join(input_folder, arquivo_imagem))
+        imagem_original = cv2.imread(caminho_img)
         imagem_processada = imagem_original.copy()
 
-        screen_res = (1600, 900)
         scale_width = screen_res[0] / imagem_original.shape[1]
         scale_height = screen_res[1] / imagem_original.shape[0]
         scale = min(scale_width, scale_height)
@@ -59,24 +58,37 @@ def executar_crop(scan, obra, numero):
         cropping = False
         x_start = y_start = x_end = y_end = 0
         crops_atuais = []
+        clone = imagem_interface.copy()
 
         def mouse_crop(event, x, y, flags, param):
-            nonlocal x_start, y_start, x_end, y_end, cropping, imagem_interface, clone
+            nonlocal x_start, y_start, x_end, y_end, cropping, imagem_interface, clone, imagem_processada
 
             if event == cv2.EVENT_LBUTTONDOWN:
                 x_start, y_start = x, y
                 cropping = True
+
             elif event == cv2.EVENT_MOUSEMOVE and cropping:
                 x_end, y_end = x, y
+
             elif event == cv2.EVENT_LBUTTONUP:
                 cropping = False
+                x = int(min(x_start, x_end) / scale)
+                y = int(min(y_start, y_end) / scale)
+                w = int(abs(x_start - x_end) / scale)
+                h = int(abs(y_start - y_end) / scale)
 
-                x, y, w, h = int(min(x_start, x_end)/scale), int(min(y_start, y_end)/scale), int(abs(x_start - x_end)/scale), int(abs(y_start - y_end)/scale)
+                if w < 5 or h < 5:
+                    print("⚠️ Crop muito pequeno.")
+                    return
+
                 roi = imagem_original[y:y + h, x:x + w]
                 nome_crop = f"{arquivo_imagem.split('.')[0]}_crop_{len(posicoes) + len(crops_atuais) + 1}.png"
                 caminho_crop = os.path.join(output_folder, nome_crop)
                 cv2.imwrite(caminho_crop, roi)
-                cv2.rectangle(imagem_processada, (x, y), (x + w, y + h), (255, 255, 255), -1)
+
+                imagem_processada[y:y + h, x:x + w] = (255, 255, 255)
+                imagem_interface = cv2.resize(imagem_processada, (window_width, window_height))
+                clone = imagem_interface.copy()
 
                 crops_atuais.append({
                     "scan": scan,
@@ -90,11 +102,8 @@ def executar_crop(scan, obra, numero):
                     "h": h
                 })
 
-                print(f"✅ Crop salvo: {nome_crop}")
-                imagem_interface = cv2.resize(imagem_processada, (window_width, window_height))
-                clone = imagem_interface.copy()
+                print(f"✅ Crop salvo com limpeza: {nome_crop}")
 
-        clone = imagem_interface.copy()
         cv2.namedWindow("Cropper")
         cv2.setMouseCallback("Cropper", mouse_crop)
 
@@ -110,18 +119,31 @@ def executar_crop(scan, obra, numero):
                 imagem_processada = imagem_original.copy()
                 imagem_interface = cv2.resize(imagem_processada, (window_width, window_height))
                 clone = imagem_interface.copy()
+
             elif key == ord("d"):
                 if crops_atuais:
                     ultimo = crops_atuais.pop()
-                    print(f"❌ Removido: {ultimo['crop']}")
+                    crop_path = os.path.join(output_folder, ultimo['crop'])
+                    if os.path.exists(crop_path):
+                        os.remove(crop_path)
+                        print(f"❌ Crop deletado: {ultimo['crop']}")
                     imagem_processada = imagem_original.copy()
                     for c in crops_atuais:
-                        cv2.rectangle(imagem_processada, (c['x'], c['y']), (c['x'] + c['w'], c['y'] + c['h']), imagem_original[c['y'], c['x']].tolist(), -1)
+                        imagem_processada[c['y']:c['y'] + c['h'], c['x']:c['x'] + c['w']] = (255, 255, 255)
                     imagem_interface = cv2.resize(imagem_processada, (window_width, window_height))
                     clone = imagem_interface.copy()
+
+            elif key == ord("b"):
+                if indice_atual > 0:
+                    print("⏪ Voltando para a imagem anterior...")
+                    indice_atual -= 1
+                    break
+
             elif key == ord("c"):
                 posicoes.extend(crops_atuais)
+                indice_atual += 1
                 break
+
             elif key == ord("q"):
                 print("🚪 Saindo da interface.")
                 cv2.destroyAllWindows()
