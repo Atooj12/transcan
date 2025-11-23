@@ -2,7 +2,7 @@
 
 Sistema **automatizado** de tradução de mangás — do **crop** ao **texto reinserido**.
 
-> ⚠️ Repositório **privado**. Projeto em fase beta com objetivo de monetização real.
+> ⚠️ Repositório público, porém o projeto continua em fase beta e com objetivo de monetização futura.
 
 ---
 
@@ -46,10 +46,6 @@ transcan-mvp/
 ├── requirements.txt
 └── README.md
 
-yaml
-Copiar
-Editar
-
 ---
 
 ## ▶️ Como Rodar
@@ -78,7 +74,7 @@ Reinserção automática do texto nas imagens originais
 
 👨‍💻 Autor
 João Pedro
-Projeto Transcan (Beta Privado)
+Projeto Transcan (Beta)
 GitHub / LinkedIn: em construção
 
 ❌ Licença
